@@ -11,15 +11,15 @@
 #include <QPoint>
 #include <qmath.h>
 
-#include <cannon.h>
-#include <enemy.h>
-#include <bullet.h>
+#include <Cannon/ICannon.h>
+#include <Enemy/IEnemy.h>
+#include <Bullet/IBullet.h>
 
 namespace Ui {
-class game;
+class Game;
 }
 
-class game : public QWidget
+class Game : public QWidget
 {
     Q_OBJECT
 
@@ -32,8 +32,8 @@ class game : public QWidget
     const int SPACING = 0;
 
 public:
-    explicit game(QWidget *parent = 0);
-    ~game();
+    explicit Game(QWidget *parent = 0);
+    ~Game();
 
     QGraphicsScene gameScene;
     QRect* pWorkingRectangle;
@@ -66,7 +66,7 @@ public slots:
     void newFrame();
 
 private:
-    Ui::game *ui;   
+    Ui::Game *ui;   
 };
 
 #endif // GAME_H

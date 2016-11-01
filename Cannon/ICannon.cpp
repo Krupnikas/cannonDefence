@@ -1,8 +1,8 @@
-#include "cannon.h"
+#include "ICannon.h"
 
-Cannon::Cannon(int i, int j,
+ICannon::ICannon(int i, int j,
                enum types typeOfCannon,
-               game *Window)
+               Game *Window)
 {
     window = Window;
 
@@ -16,7 +16,7 @@ Cannon::Cannon(int i, int j,
     angle = 0;
 }
 
-void Cannon::draw()
+void ICannon::draw()
 {
     switch (type)
     {
@@ -60,7 +60,7 @@ void Cannon::draw()
     }
 }
 
-void Cannon::drawGun()
+void ICannon::drawGun()
 {
     QPolygon barrel;
     barrel << (globalCenter - QPoint(globalRadius * sin(angle),
@@ -80,22 +80,22 @@ void Cannon::drawGun()
                                  bodyBrush);
 }
 
-void Cannon::drawBigGun()
+void ICannon::drawBigGun()
 {
     drawGun();
 }
 
-void Cannon::drawMonsterGun()
+void ICannon::drawMonsterGun()
 {
     drawGun();
 }
 
-void Cannon::drawFireGun()
+void ICannon::drawFireGun()
 {
     drawGun();
 }
 
-void Cannon::drawPlasmaGun()
+void ICannon::drawPlasmaGun()
 {
     drawGun();
 }

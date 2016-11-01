@@ -1,0 +1,21 @@
+#ifndef BULLET_H
+#define BULLET_H
+
+#include <Game/Game.h>
+
+class IBullet
+{
+public:
+
+    enum types {
+        shot,
+        bigShot,
+        monsterShot,
+        fireShot,
+        plasmaShot
+    } type;
+
+    IBullet();
+};
+
+#endif // BULLET_H

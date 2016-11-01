@@ -13,18 +13,35 @@ TEMPLATE = app
 
 CONFIG += c++11
 
-SOURCES += main.cpp\
+SOURCES +=\
         game.cpp \
     cannon.cpp \
     enemy.cpp \
-    bullet.cpp
+    bullet.cpp \
+    Bullet/IBullet.cpp \
+    Cannon/ICannon.cpp \
+    Enemy/IEnemy.cpp \
+    Game/Game.cpp \
+    Cannon/SlowCannon.cpp \
+    Game/common_h.cpp \
+    Cannon/BurnCannon.cpp \
+    Cannon/MonsterCannon.cpp
 
 HEADERS  += game.h \
     cannon.h \
     enemy.h \
-    bullet.h
+    bullet.h \
+    Enemy/IEnemy.h \
+    Cannon/ICannon.h \
+    Game/Game.h \
+    Bullet/IBullet.h \
+    Cannon/SlowCannon.h \
+    Game/common_h.h \
+    Cannon/BurnCannon.h \
+    Cannon/MonsterCannon.h
 
-FORMS    += game.ui
+FORMS    += game.ui \
+    Game/game.ui
 
 unix|win32: LIBS += -L$$PWD/./ -lBox2D
 
