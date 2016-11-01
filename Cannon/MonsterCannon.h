@@ -1,18 +1,17 @@
-#ifndef SLOWCANNON
-#define SLOWCANNON
+#ifndef MONSTERCANNON_H
+#define MONSTERCANNON_H
 
-#endif // SLOWCANNON
-
-
-class SlowCannon : public ICannon
+class MonsterCannon : public ICannon
 {
 private:
     
 public:
     
-    virtual SlowCannon();
-    virtual ~SlowCannon();
+    virtual MonsterCannon();
+    virtual ~MonsterCannon();
     
     virtual void draw() override;
     virtual void fire() override;
 };
+
+#endif // MONSTERCANNON_H
