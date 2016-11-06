@@ -8,6 +8,8 @@ https://habrahabr.ru/post/136725/
 
 https://habrahabr.ru/post/133897/
 
+Продать корейцам? https://habrahabr.ru/post/112565/
+
 *Нужно будет написать статью на хабре - очень повышает число загрузок
 
 Разработка игры на Android с использованием Qt C++
