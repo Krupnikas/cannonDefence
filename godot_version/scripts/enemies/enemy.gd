@@ -19,6 +19,11 @@ var target_x: float = -50.0
 var is_dead: bool = false
 var is_flying: bool = false
 
+# Pathfinding
+var path: Array[Vector2i] = []
+var current_waypoint_index: int = 0
+var waypoint_threshold: float = 30.0  # Distance to consider waypoint reached
+
 # Visual
 var body_radius: float = 25.0
 
@@ -96,6 +101,29 @@ func init(type: int, bullets_parent: Node2D, game: Node2D = null) -> void:
 			body_radius = 26.0
 
 	queue_redraw()
+
+
+func _ready() -> void:
+	# Calculate initial path when spawned
+	call_deferred("_calculate_path")
+
+
+func _calculate_path() -> void:
+	# Flying enemies don't need pathfinding
+	if is_flying:
+		path.clear()
+		return
+
+	var start_grid := Pathfinding.world_to_grid(global_position)
+	path = Pathfinding.find_path(start_grid, -1)
+	current_waypoint_index = 0
+
+
+func recalculate_path() -> void:
+	# Called when obstacles change
+	if is_flying:
+		return
+	_calculate_path()
 
 
 func _process(delta: float) -> void:
@@ -177,10 +205,32 @@ func _update_status_effects(delta: float) -> void:
 func _move(delta: float) -> void:
 	var direction := Vector2(-1, 0)
 
-	# Flying enemies move in a wave pattern
+	# Flying enemies move in a wave pattern, ignoring obstacles
 	if is_flying:
 		var wave := sin(position.x * 0.015) * 0.4
 		direction = Vector2(-1, wave).normalized()
+		position += direction * speed * delta
+		return
+
+	# Ground enemies use pathfinding
+	if path.size() > 0 and current_waypoint_index < path.size():
+		var target_pos := Pathfinding.grid_to_world(path[current_waypoint_index])
+		var dist_to_waypoint := position.distance_to(target_pos)
+
+		if dist_to_waypoint < waypoint_threshold:
+			# Move to next waypoint
+			current_waypoint_index += 1
+			if current_waypoint_index >= path.size():
+				# End of path, just continue left
+				direction = Vector2(-1, 0)
+			else:
+				target_pos = Pathfinding.grid_to_world(path[current_waypoint_index])
+				direction = position.direction_to(target_pos)
+		else:
+			direction = position.direction_to(target_pos)
+	else:
+		# No path or completed path - just go left
+		direction = Vector2(-1, 0)
 
 	position += direction * speed * delta
 

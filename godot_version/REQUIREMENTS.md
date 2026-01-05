@@ -75,10 +75,10 @@ Core principle: **Barely possible to progress, but achievable with optimal strat
 - [ ] Tight resource constraints forcing strategic choices
 
 ## 6. PATHFINDING SYSTEM
-- [ ] Enemies pathfind around placed cannons
-- [ ] **Path validation before cannon placement**
-- [ ] Visual preview of blocked placement
-- [ ] Flying enemies ignore ground obstacles
+- [x] Enemies pathfind around placed cannons (A* algorithm)
+- [x] Path validation before cannon placement
+- [x] "BLOCKED!" message when placement would block all paths
+- [x] Flying enemies ignore ground obstacles (wave pattern movement)
 
 ## 7. CAMERA SYSTEM (Feature Flag)
 - [ ] Zoom in/out (mouse wheel)
@@ -114,10 +114,10 @@ All experimental features controlled via settings:
 3. ~~Add enemy attacks on cannons~~ ✓
 4. ~~Balance economy for difficulty~~ ✓ (Miner: 60s payback)
 
-### Phase 2: Pathfinding (Important)
-5. Implement A* pathfinding for enemies
-6. Path validation for cannon placement
-7. Flying enemies ignore ground cannons
+### Phase 2: Pathfinding (Important) ✓ COMPLETED
+5. ~~Implement A* pathfinding for enemies~~ ✓
+6. ~~Path validation for cannon placement~~ ✓
+7. ~~Flying enemies ignore ground cannons~~ ✓
 
 ### Phase 3: Polish (Nice to Have)
 8. Variable grid dimensions per level

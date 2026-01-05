@@ -46,6 +46,9 @@ func _init_grid() -> void:
 		column.resize(GameData.GRID_ROWS)
 		grid.append(column)
 
+	# Reset pathfinding obstacles
+	Pathfinding.clear_obstacles()
+
 
 func _draw_grid() -> void:
 	for x in range(GameData.GRID_COLS):
@@ -179,11 +182,29 @@ func _handle_left_click(click_pos: Vector2) -> void:
 	if not GameData.is_cannon_unlocked(GameData.selected_cannon_type):
 		return
 
+	# Check if placing would block all paths
+	if Pathfinding.would_block_all_paths(grid_pos):
+		_show_blocked_message()
+		return
+
 	var cannon_stats: Dictionary = GameData.CANNON_STATS[GameData.selected_cannon_type]
 	if not GameData.spend_money(cannon_stats.cost):
 		return
 
 	_place_cannon(grid_pos)
+
+
+func _show_blocked_message() -> void:
+	var label := Label.new()
+	label.text = "BLOCKED!"
+	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_color_override("font_color", Color.RED)
+	label.position = Vector2(GameData.VIEWPORT_WIDTH / 2 - 50, GameData.VIEWPORT_HEIGHT / 2)
+	ui_layer.add_child(label)
+
+	var tween := create_tween()
+	tween.tween_property(label, "modulate:a", 0.0, 1.0)
+	tween.tween_callback(label.queue_free)
 
 
 func _handle_right_click(click_pos: Vector2) -> void:
@@ -213,6 +234,10 @@ func _place_cannon(grid_pos: Vector2i) -> void:
 	cannons.append(cannon)
 	grid[grid_pos.x][grid_pos.y] = cannon
 
+	# Update pathfinding obstacles
+	Pathfinding.set_obstacle(grid_pos, true)
+	_recalculate_enemy_paths()
+
 	cannon.tree_exited.connect(_on_cannon_removed.bind(grid_pos))
 	cannon.destroyed.connect(_on_cannon_destroyed.bind(cannon, grid_pos))
 
@@ -225,6 +250,10 @@ func _sell_cannon(cannon: Node2D, grid_pos: Vector2i) -> void:
 	cannons.erase(cannon)
 	cannon.queue_free()
 
+	# Update pathfinding
+	Pathfinding.set_obstacle(grid_pos, false)
+	_recalculate_enemy_paths()
+
 
 func _on_cannon_removed(grid_pos: Vector2i) -> void:
 	grid[grid_pos.x][grid_pos.y] = null
@@ -233,6 +262,17 @@ func _on_cannon_removed(grid_pos: Vector2i) -> void:
 func _on_cannon_destroyed(cannon: Node2D, grid_pos: Vector2i) -> void:
 	grid[grid_pos.x][grid_pos.y] = null
 	cannons.erase(cannon)
+
+	# Update pathfinding
+	Pathfinding.set_obstacle(grid_pos, false)
+	_recalculate_enemy_paths()
+
+
+func _recalculate_enemy_paths() -> void:
+	for enemy in enemies:
+		if is_instance_valid(enemy) and not enemy.is_dead:
+			if enemy.has_method("recalculate_path"):
+				enemy.recalculate_path()
 
 
 func _on_game_over() -> void:
