@@ -27,24 +27,18 @@ jobs:
         with:
           lfs: true
 
-      - name: Setup Godot export templates
-        run: |
-          mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
-          mv /root/.local/share/godot/export_templates/4.2.2.stable/* ~/.local/share/godot/export_templates/4.2.2.stable/
-
       - name: Create build directory
         run: mkdir -p godot_version/build/web
 
       - name: Build Web export
         run: |
           cd godot_version
-          godot --headless --export-release "Web" build/web/index.html
+          /usr/local/bin/godot --headless --verbose --export-release "Web" build/web/index.html
 
       - name: Add coi-serviceworker for SharedArrayBuffer
         run: |
           cd godot_version/build/web
           curl -fsSL -O https://raw.githubusercontent.com/nickvg/coi-serviceworker/master/coi-serviceworker.min.js
-          # Inject the service worker script into index.html
           sed -i 's|<head>|<head><script src="coi-serviceworker.min.js"></script>|' index.html
 
       - name: Upload artifact
