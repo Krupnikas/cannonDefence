@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3 uid="uid://game001"]
+
+[ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
+[ext_resource type="PackedScene" uid="uid://hud001" path="res://scenes/ui/hud.tscn" id="2_hud"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="GridLayer" type="Node2D" parent="."]
+
+[node name="CannonLayer" type="Node2D" parent="."]
+
+[node name="EnemyLayer" type="Node2D" parent="."]
+
+[node name="BulletLayer" type="Node2D" parent="."]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(800, 450)
+anchor_mode = 0
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" parent="UILayer" instance=ExtResource("2_hud")]
