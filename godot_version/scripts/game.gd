@@ -6,7 +6,7 @@ var cannon_scene: PackedScene = preload("res://scenes/cannons/cannon.tscn")
 var enemy_scene: PackedScene = preload("res://scenes/enemies/enemy.tscn")
 
 # Grid tracking
-var grid: Array[Array] = []  # 2D array to track cannon placement
+var grid: Array[Array] = []
 var cannons: Array[Node2D] = []
 var enemies: Array[Node2D] = []
 
@@ -15,8 +15,8 @@ var wave_timer: float = 0.0
 var spawn_timer: float = 0.0
 var enemies_to_spawn: int = 0
 var wave_in_progress: bool = false
-const WAVE_DELAY: float = 5.0
-const SPAWN_INTERVAL: float = 1.0
+const WAVE_DELAY: float = 4.0
+const SPAWN_INTERVAL: float = 0.8
 
 # References
 @onready var grid_layer: Node2D = $GridLayer
@@ -36,6 +36,7 @@ func _ready() -> void:
 
 func _connect_signals() -> void:
 	GameData.game_over.connect(_on_game_over)
+	GameData.victory.connect(_on_victory)
 
 
 func _init_grid() -> void:
@@ -47,24 +48,23 @@ func _init_grid() -> void:
 
 
 func _draw_grid() -> void:
-	# Draw checkerboard pattern
 	for x in range(GameData.GRID_COLS):
 		for y in range(GameData.GRID_ROWS):
 			var cell := ColorRect.new()
 			cell.size = Vector2(GameData.CELL_WIDTH, GameData.CELL_HEIGHT)
 			cell.position = Vector2(x * GameData.CELL_WIDTH, y * GameData.CELL_HEIGHT)
 
-			# Alternating colors for checkerboard
+			# Dark minimalist grid on black
 			if (x + y) % 2 == 0:
-				cell.color = Color(0.3, 0.35, 0.3, 1.0)  # Dark green-gray
+				cell.color = Color(0.08, 0.10, 0.08, 1.0)
 			else:
-				cell.color = Color(0.35, 0.4, 0.35, 1.0)  # Lighter green-gray
+				cell.color = Color(0.10, 0.12, 0.10, 1.0)
 
 			grid_layer.add_child(cell)
 
 
 func _process(delta: float) -> void:
-	if GameData.is_game_over or GameData.is_paused:
+	if GameData.is_game_over or GameData.is_paused or GameData.is_victory:
 		return
 
 	_handle_waves(delta)
@@ -84,7 +84,10 @@ func _start_wave() -> void:
 	GameData.next_wave()
 	wave_timer = 0.0
 	spawn_timer = 0.0
-	enemies_to_spawn = 5 + GameData.wave * 2
+
+	# Enemy count scales with wave and difficulty
+	var base_count := 4 + GameData.wave * 2
+	enemies_to_spawn = int(base_count * GameData.get_enemy_count_multiplier())
 	wave_in_progress = true
 
 
@@ -103,16 +106,11 @@ func _spawn_enemies(delta: float) -> void:
 
 func _spawn_enemy() -> void:
 	var enemy := enemy_scene.instantiate()
-
-	# Determine enemy type based on wave
 	var enemy_type: int = _get_enemy_type_for_wave()
 	enemy.init(enemy_type, bullet_layer)
 
-	# Spawn at random position on the right side
-	var spawn_y := randf_range(50, GameData.VIEWPORT_HEIGHT - 50)
+	var spawn_y := randf_range(60, GameData.VIEWPORT_HEIGHT - 60)
 	enemy.position = Vector2(GameData.VIEWPORT_WIDTH + 50, spawn_y)
-
-	# Set target to left side
 	enemy.target_x = -50.0
 
 	enemy_layer.add_child(enemy)
@@ -123,17 +121,21 @@ func _spawn_enemy() -> void:
 
 func _get_enemy_type_for_wave() -> int:
 	var roll := randf()
+	var wave := GameData.wave
 
-	if GameData.wave >= 10 and roll < 0.1:
-		return GameData.EnemyType.MONSTER_SOLDIER
-	elif GameData.wave >= 7 and roll < 0.2:
-		return GameData.EnemyType.SMART_SOLDIER
-	elif GameData.wave >= 5 and roll < 0.3:
-		return GameData.EnemyType.FAST_SOLDIER
-	elif GameData.wave >= 3 and roll < 0.4:
-		return GameData.EnemyType.BIG_SOLDIER
+	# Progressive enemy unlock
+	if wave >= 12 and roll < 0.08:
+		return GameData.EnemyType.RESISTANT
+	elif wave >= 10 and roll < 0.12:
+		return GameData.EnemyType.FLYING
+	elif wave >= 7 and roll < 0.18:
+		return GameData.EnemyType.DODGER
+	elif wave >= 5 and roll < 0.25:
+		return GameData.EnemyType.TANK
+	elif wave >= 3 and roll < 0.35:
+		return GameData.EnemyType.FAST
 	else:
-		return GameData.EnemyType.SOLDIER
+		return GameData.EnemyType.REGULAR
 
 
 func _cleanup_dead_enemies() -> void:
@@ -154,12 +156,15 @@ func _on_enemy_reached_end(enemy: Node2D) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_handle_click(event.position)
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			_handle_left_click(event.position)
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			_handle_right_click(event.position)
 
 
-func _handle_click(click_pos: Vector2) -> void:
-	if GameData.is_game_over:
+func _handle_left_click(click_pos: Vector2) -> void:
+	if GameData.is_game_over or GameData.is_victory:
 		return
 
 	var grid_pos := GameData.world_to_grid(click_pos)
@@ -167,22 +172,40 @@ func _handle_click(click_pos: Vector2) -> void:
 	if not GameData.is_valid_grid_pos(grid_pos):
 		return
 
-	# Check if cell is empty
 	if grid[grid_pos.x][grid_pos.y] != null:
 		return
 
-	# Check if we can afford the cannon
+	# Check cannon unlock
+	if not GameData.is_cannon_unlocked(GameData.selected_cannon_type):
+		return
+
 	var cannon_stats: Dictionary = GameData.CANNON_STATS[GameData.selected_cannon_type]
 	if not GameData.spend_money(cannon_stats.cost):
 		return
 
-	# Place cannon
 	_place_cannon(grid_pos)
+
+
+func _handle_right_click(click_pos: Vector2) -> void:
+	if GameData.is_game_over or GameData.is_victory:
+		return
+
+	var grid_pos := GameData.world_to_grid(click_pos)
+
+	if not GameData.is_valid_grid_pos(grid_pos):
+		return
+
+	var cannon: Node2D = grid[grid_pos.x][grid_pos.y]
+	if cannon == null:
+		return
+
+	# Sell cannon
+	_sell_cannon(cannon, grid_pos)
 
 
 func _place_cannon(grid_pos: Vector2i) -> void:
 	var cannon := cannon_scene.instantiate()
-	cannon.init(GameData.selected_cannon_type, bullet_layer)
+	cannon.init(GameData.selected_cannon_type, bullet_layer, self)
 	cannon.position = GameData.grid_to_world(grid_pos)
 	cannon.grid_position = grid_pos
 
@@ -193,14 +216,27 @@ func _place_cannon(grid_pos: Vector2i) -> void:
 	cannon.tree_exited.connect(_on_cannon_removed.bind(grid_pos))
 
 
+func _sell_cannon(cannon: Node2D, grid_pos: Vector2i) -> void:
+	var sell_value := cannon.get_sell_value()
+	GameData.add_money(sell_value)
+
+	grid[grid_pos.x][grid_pos.y] = null
+	cannons.erase(cannon)
+	cannon.queue_free()
+
+
 func _on_cannon_removed(grid_pos: Vector2i) -> void:
 	grid[grid_pos.x][grid_pos.y] = null
 
 
 func _on_game_over() -> void:
-	# Show game over UI
 	if hud.has_method("show_game_over"):
 		hud.show_game_over()
+
+
+func _on_victory() -> void:
+	if hud.has_method("show_victory"):
+		hud.show_victory()
 
 
 func get_enemies_in_range(from_pos: Vector2, attack_range: float) -> Array[Node2D]:

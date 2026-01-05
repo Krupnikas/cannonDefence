@@ -7,7 +7,7 @@ config_version=5
 [application]
 
 config/name="Cannon Defence"
-run/main_scene="res://scenes/game/game.tscn"
+run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -40,3 +40,4 @@ GameData="*res://scripts/autoload/game_data.gd"
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)
