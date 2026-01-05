@@ -43,7 +43,7 @@ jobs:
       - name: Add coi-serviceworker for SharedArrayBuffer
         run: |
           cd godot_version/build/web
-          curl -O https://raw.githubusercontent.com/nickvg/coi-serviceworker/refs/heads/master/coi-serviceworker.min.js
+          curl -fsSL -O https://raw.githubusercontent.com/nickvg/coi-serviceworker/master/coi-serviceworker.min.js
           # Inject the service worker script into index.html
           sed -i 's|<head>|<head><script src="coi-serviceworker.min.js"></script>|' index.html
 
