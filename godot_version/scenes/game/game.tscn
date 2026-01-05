@@ -14,6 +14,10 @@ script = ExtResource("1_game")
 
 [node name="BulletLayer" type="Node2D" parent="."]
 
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(800, 450)
+anchor_mode = 0
+
 [node name="UILayer" type="CanvasLayer" parent="."]
 
 [node name="HUD" parent="UILayer" instance=ExtResource("2_hud")]

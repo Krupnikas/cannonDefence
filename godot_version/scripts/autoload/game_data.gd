@@ -1,13 +1,15 @@
 extends Node
 ## Game Data Autoload - Global constants, game state, and level progression
 
-# Grid Configuration
-const GRID_COLS: int = 8
-const GRID_ROWS: int = 5
+# Viewport Configuration (constant)
 const VIEWPORT_WIDTH: int = 1600
 const VIEWPORT_HEIGHT: int = 900
-const CELL_WIDTH: float = VIEWPORT_WIDTH / float(GRID_COLS)  # 200
-const CELL_HEIGHT: float = VIEWPORT_HEIGHT / float(GRID_ROWS)  # 180
+
+# Grid Configuration (dynamic per level)
+var GRID_COLS: int = 8
+var GRID_ROWS: int = 5
+var CELL_WIDTH: float = VIEWPORT_WIDTH / float(GRID_COLS)
+var CELL_HEIGHT: float = VIEWPORT_HEIGHT / float(GRID_ROWS)
 
 # Level Configuration
 const TOTAL_LEVELS: int = 15
@@ -295,26 +297,26 @@ const BULLET_STATS: Dictionary = {
 	}
 }
 
-# Level definitions: {waves_to_win, starting_money, starting_lives, enemy_multiplier, stars_thresholds}
+# Level definitions: {waves, money, lives, difficulty, stars, grid_cols, grid_rows}
 const LEVEL_DATA: Array[Dictionary] = [
-	# Row 1: Easy levels (1-5)
-	{"waves": 5, "money": 250, "lives": 15, "difficulty": 0.8, "stars": [1000, 2500, 5000]},
-	{"waves": 6, "money": 225, "lives": 12, "difficulty": 0.9, "stars": [1500, 3500, 7000]},
-	{"waves": 7, "money": 200, "lives": 12, "difficulty": 1.0, "stars": [2000, 4500, 9000]},
-	{"waves": 8, "money": 200, "lives": 10, "difficulty": 1.1, "stars": [2500, 5500, 11000]},
-	{"waves": 10, "money": 175, "lives": 10, "difficulty": 1.2, "stars": [3000, 7000, 14000]},
-	# Row 2: Medium levels (6-10)
-	{"waves": 10, "money": 200, "lives": 10, "difficulty": 1.3, "stars": [4000, 9000, 18000]},
-	{"waves": 12, "money": 175, "lives": 8, "difficulty": 1.4, "stars": [5000, 11000, 22000]},
-	{"waves": 12, "money": 150, "lives": 8, "difficulty": 1.5, "stars": [6000, 13000, 26000]},
-	{"waves": 15, "money": 150, "lives": 8, "difficulty": 1.6, "stars": [7500, 16000, 32000]},
-	{"waves": 15, "money": 125, "lives": 6, "difficulty": 1.8, "stars": [9000, 19000, 38000]},
-	# Row 3: Hard levels (11-15)
-	{"waves": 18, "money": 150, "lives": 6, "difficulty": 2.0, "stars": [11000, 23000, 46000]},
-	{"waves": 20, "money": 125, "lives": 5, "difficulty": 2.2, "stars": [13000, 27000, 54000]},
-	{"waves": 22, "money": 100, "lives": 5, "difficulty": 2.5, "stars": [16000, 33000, 66000]},
-	{"waves": 25, "money": 100, "lives": 4, "difficulty": 2.8, "stars": [20000, 40000, 80000]},
-	{"waves": 30, "money": 75, "lives": 3, "difficulty": 3.0, "stars": [25000, 50000, 100000]},
+	# Row 1: Easy levels (1-5) - Standard 8x5 grid
+	{"waves": 5, "money": 250, "lives": 15, "difficulty": 0.8, "stars": [1000, 2500, 5000], "cols": 8, "rows": 5},
+	{"waves": 6, "money": 225, "lives": 12, "difficulty": 0.9, "stars": [1500, 3500, 7000], "cols": 8, "rows": 5},
+	{"waves": 7, "money": 200, "lives": 12, "difficulty": 1.0, "stars": [2000, 4500, 9000], "cols": 8, "rows": 5},
+	{"waves": 8, "money": 200, "lives": 10, "difficulty": 1.1, "stars": [2500, 5500, 11000], "cols": 8, "rows": 5},
+	{"waves": 10, "money": 175, "lives": 10, "difficulty": 1.2, "stars": [3000, 7000, 14000], "cols": 8, "rows": 5},
+	# Row 2: Medium levels (6-10) - Varied grids
+	{"waves": 10, "money": 200, "lives": 10, "difficulty": 1.3, "stars": [4000, 9000, 18000], "cols": 10, "rows": 5},
+	{"waves": 12, "money": 175, "lives": 8, "difficulty": 1.4, "stars": [5000, 11000, 22000], "cols": 8, "rows": 6},
+	{"waves": 12, "money": 150, "lives": 8, "difficulty": 1.5, "stars": [6000, 13000, 26000], "cols": 10, "rows": 6},
+	{"waves": 15, "money": 150, "lives": 8, "difficulty": 1.6, "stars": [7500, 16000, 32000], "cols": 9, "rows": 5},
+	{"waves": 15, "money": 125, "lives": 6, "difficulty": 1.8, "stars": [9000, 19000, 38000], "cols": 10, "rows": 5},
+	# Row 3: Hard levels (11-15) - Larger grids
+	{"waves": 18, "money": 150, "lives": 6, "difficulty": 2.0, "stars": [11000, 23000, 46000], "cols": 10, "rows": 6},
+	{"waves": 20, "money": 125, "lives": 5, "difficulty": 2.2, "stars": [13000, 27000, 54000], "cols": 12, "rows": 6},
+	{"waves": 22, "money": 100, "lives": 5, "difficulty": 2.5, "stars": [16000, 33000, 66000], "cols": 10, "rows": 7},
+	{"waves": 25, "money": 100, "lives": 4, "difficulty": 2.8, "stars": [20000, 40000, 80000], "cols": 12, "rows": 7},
+	{"waves": 30, "money": 75, "lives": 3, "difficulty": 3.0, "stars": [25000, 50000, 100000], "cols": 14, "rows": 7},
 ]
 
 # Game State
@@ -348,6 +350,7 @@ signal score_changed(new_score: int)
 signal game_over
 signal victory
 signal level_complete(stars: int)
+signal grid_changed(cols: int, rows: int)
 
 
 func _ready() -> void:
@@ -369,6 +372,12 @@ func reset_game() -> void:
 	lives = level_data.lives
 	waves_to_win = level_data.waves
 	difficulty_multiplier = level_data.difficulty
+
+	# Set grid dimensions for this level
+	var new_cols: int = level_data.get("cols", 8)
+	var new_rows: int = level_data.get("rows", 5)
+	_update_grid_dimensions(new_cols, new_rows)
+
 	wave = 0
 	score = 0
 	is_game_over = false
@@ -378,6 +387,14 @@ func reset_game() -> void:
 	emit_signal("lives_changed", lives)
 	emit_signal("wave_changed", wave)
 	emit_signal("score_changed", score)
+
+
+func _update_grid_dimensions(cols: int, rows: int) -> void:
+	GRID_COLS = cols
+	GRID_ROWS = rows
+	CELL_WIDTH = VIEWPORT_WIDTH / float(GRID_COLS)
+	CELL_HEIGHT = VIEWPORT_HEIGHT / float(GRID_ROWS)
+	emit_signal("grid_changed", cols, rows)
 
 
 func set_level(level: int) -> void:

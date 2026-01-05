@@ -18,6 +18,12 @@ var wave_in_progress: bool = false
 const WAVE_DELAY: float = 4.0
 const SPAWN_INTERVAL: float = 0.8
 
+# Camera control
+var camera_zoom: float = 1.0
+var camera_offset: Vector2 = Vector2.ZERO
+var is_panning: bool = false
+var pan_start: Vector2 = Vector2.ZERO
+
 # References
 @onready var grid_layer: Node2D = $GridLayer
 @onready var cannon_layer: Node2D = $CannonLayer
@@ -25,18 +31,33 @@ const SPAWN_INTERVAL: float = 0.8
 @onready var bullet_layer: Node2D = $BulletLayer
 @onready var ui_layer: CanvasLayer = $UILayer
 @onready var hud: Control = $UILayer/HUD
+@onready var camera: Camera2D = $Camera2D
 
 
 func _ready() -> void:
+	_connect_signals()
+	GameData.reset_game()  # Sets grid dimensions first
 	_init_grid()
 	_draw_grid()
-	GameData.reset_game()
-	_connect_signals()
+	_setup_camera()
+
+
+func _setup_camera() -> void:
+	if camera:
+		camera.zoom = Vector2(camera_zoom, camera_zoom)
+		camera.position = Vector2(GameData.VIEWPORT_WIDTH / 2, GameData.VIEWPORT_HEIGHT / 2)
+		camera.enabled = true
 
 
 func _connect_signals() -> void:
 	GameData.game_over.connect(_on_game_over)
 	GameData.victory.connect(_on_victory)
+	GameData.grid_changed.connect(_on_grid_changed)
+
+
+func _on_grid_changed(_cols: int, _rows: int) -> void:
+	# Reinitialize pathfinding with new dimensions
+	Pathfinding._init_grid()
 
 
 func _init_grid() -> void:
@@ -47,10 +68,15 @@ func _init_grid() -> void:
 		grid.append(column)
 
 	# Reset pathfinding obstacles
-	Pathfinding.clear_obstacles()
+	Pathfinding._init_grid()
 
 
 func _draw_grid() -> void:
+	# Clear existing grid cells
+	for child in grid_layer.get_children():
+		child.queue_free()
+
+	# Draw new grid
 	for x in range(GameData.GRID_COLS):
 		for y in range(GameData.GRID_ROWS):
 			var cell := ColorRect.new()
@@ -159,11 +185,61 @@ func _on_enemy_reached_end(enemy: Node2D) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Camera controls (feature flagged)
+	if Settings.ENABLE_CAMERA_CONTROLS and camera:
+		if event is InputEventMouseButton:
+			_handle_camera_zoom(event)
+			_handle_camera_pan_button(event)
+		elif event is InputEventMouseMotion and is_panning:
+			_handle_camera_pan_motion(event)
+
+	# Game input
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
-			_handle_left_click(event.position)
+			_handle_left_click(_get_world_mouse_pos(event.position))
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			_handle_right_click(event.position)
+			_handle_right_click(_get_world_mouse_pos(event.position))
+
+
+func _get_world_mouse_pos(screen_pos: Vector2) -> Vector2:
+	if not camera or not Settings.ENABLE_CAMERA_CONTROLS:
+		return screen_pos
+	# Convert screen position to world position considering camera zoom/offset
+	var viewport_center := Vector2(GameData.VIEWPORT_WIDTH / 2, GameData.VIEWPORT_HEIGHT / 2)
+	return (screen_pos - viewport_center) / camera_zoom + camera.position
+
+
+func _handle_camera_zoom(event: InputEventMouseButton) -> void:
+	if not event.pressed:
+		return
+
+	var zoom_change := 0.0
+	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		zoom_change = Settings.CAMERA_ZOOM_SPEED
+	elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		zoom_change = -Settings.CAMERA_ZOOM_SPEED
+
+	if zoom_change != 0.0:
+		camera_zoom = clamp(camera_zoom + zoom_change, Settings.CAMERA_ZOOM_MIN, Settings.CAMERA_ZOOM_MAX)
+		camera.zoom = Vector2(camera_zoom, camera_zoom)
+
+
+func _handle_camera_pan_button(event: InputEventMouseButton) -> void:
+	if event.button_index == MOUSE_BUTTON_MIDDLE:
+		is_panning = event.pressed
+		if is_panning:
+			pan_start = event.position
+
+
+func _handle_camera_pan_motion(event: InputEventMouseMotion) -> void:
+	var delta := (pan_start - event.position) / camera_zoom
+	camera.position += delta
+	pan_start = event.position
+
+	# Clamp camera position to reasonable bounds
+	var max_offset := Vector2(GameData.VIEWPORT_WIDTH, GameData.VIEWPORT_HEIGHT) * 0.5
+	camera.position.x = clamp(camera.position.x, -max_offset.x, GameData.VIEWPORT_WIDTH + max_offset.x)
+	camera.position.y = clamp(camera.position.y, -max_offset.y, GameData.VIEWPORT_HEIGHT + max_offset.y)
 
 
 func _handle_left_click(click_pos: Vector2) -> void:

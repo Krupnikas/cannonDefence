@@ -18,7 +18,7 @@ The challenge comes from resource management, not reflexes.
 - [x] Progressive unlocking (complete level N to unlock N+1)
 - [x] Star ratings (1-3 stars based on score thresholds)
 - [x] Save/load progress persistence
-- [ ] **Variable grid dimensions per level** (some levels 6x4, others 10x6, etc.)
+- [x] Variable grid dimensions per level (8x5 to 14x7)
 - [ ] Level-specific starting conditions
 
 ## 3. CANNON TYPES (9 types)
@@ -80,22 +80,23 @@ Core principle: **Barely possible to progress, but achievable with optimal strat
 - [x] "BLOCKED!" message when placement would block all paths
 - [x] Flying enemies ignore ground obstacles (wave pattern movement)
 
-## 7. CAMERA SYSTEM (Feature Flag)
-- [ ] Zoom in/out (mouse wheel)
-- [ ] Pan/navigate (WASD or drag)
-- [ ] Feature flag to enable/disable
-- [ ] Useful for larger grid levels
+## 7. CAMERA SYSTEM (Feature Flag) ✓
+- [x] Zoom in/out (mouse wheel)
+- [x] Pan/navigate (middle mouse drag)
+- [x] Feature flag to enable/disable
+- [x] Useful for larger grid levels
 
-## 8. FEATURE FLAGS & SETTINGS
-All experimental features controlled via settings:
-- [ ] `ENABLE_CAMERA_CONTROLS`: bool
-- [ ] `ENABLE_PATHFINDING`: bool
-- [ ] `ENABLE_CANNON_HP`: bool
-- [ ] `ENABLE_ENEMY_ATTACKS`: bool
-- [ ] `ENABLE_MINER_CANNON`: bool
-- [ ] `DEBUG_SHOW_PATHS`: bool
-- [ ] `DEBUG_SHOW_RANGES`: bool
-- [ ] `DEBUG_INFINITE_MONEY`: bool
+## 8. FEATURE FLAGS & SETTINGS ✓
+All experimental features controlled via Settings autoload:
+- [x] `ENABLE_CAMERA_CONTROLS`: bool
+- [x] `ENABLE_PATHFINDING`: bool
+- [x] `ENABLE_CANNON_HP`: bool
+- [x] `ENABLE_ENEMY_ATTACKS`: bool
+- [x] `ENABLE_MINER_CANNON`: bool
+- [x] `DEBUG_SHOW_PATHS`: bool
+- [x] `DEBUG_SHOW_RANGES`: bool
+- [x] `DEBUG_INFINITE_MONEY`: bool
+- [x] `DEBUG_INVINCIBLE_CANNONS`: bool
 
 ## 9. TESTING & BALANCE
 - [ ] Economy simulation tests
@@ -119,11 +120,11 @@ All experimental features controlled via settings:
 6. ~~Path validation for cannon placement~~ ✓
 7. ~~Flying enemies ignore ground cannons~~ ✓
 
-### Phase 3: Polish (Nice to Have)
-8. Variable grid dimensions per level
-9. Camera zoom/pan with feature flag
-10. Feature flags system
-11. Economy tests
+### Phase 3: Polish (Nice to Have) ✓ COMPLETED
+8. ~~Variable grid dimensions per level~~ ✓
+9. ~~Camera zoom/pan with feature flag~~ ✓
+10. ~~Feature flags system~~ ✓
+11. Economy tests (manual testing recommended)
 
 ---
 
