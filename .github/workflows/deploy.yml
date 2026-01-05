@@ -2,19 +2,14 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   workflow_dispatch:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 env:
   GODOT_VERSION: 4.2.2
-  PROJECT_PATH: godot_version
 
 jobs:
   build:
@@ -22,31 +17,35 @@ jobs:
     container:
       image: barichello/godot-ci:4.2.2
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          lfs: true
+      - uses: actions/checkout@v4
 
-      - name: Setup
+      - name: Debug - Find Godot
         run: |
-          mkdir -v -p ~/.local/share/godot/export_templates/
+          echo "=== Checking Godot ==="
+          which godot || echo "godot not in PATH"
+          ls -la /usr/local/bin/godot* 2>/dev/null || echo "Not in /usr/local/bin"
+          ls -la /opt/godot* 2>/dev/null || echo "Not in /opt"
+          find / -name "godot*" -type f 2>/dev/null | head -5 || true
+
+      - name: Setup templates
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/
           mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
-      - name: Web Build
+      - name: Export Web
         run: |
-          mkdir -v -p build/web
-          EXPORT_DIR="$(readlink -f build)"
-          cd $PROJECT_PATH
-          godot --headless --verbose --export-release "Web" "$EXPORT_DIR/web/index.html"
+          mkdir -p build/web
+          cd godot_version
+          /usr/local/bin/godot --headless --verbose --export-release "Web" ../build/web/index.html
 
-      - name: Add coi-serviceworker for SharedArrayBuffer
+      - name: Add SharedArrayBuffer fix
         run: |
           cd build/web
-          curl -fsSL -O https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
+          curl -fsSL -O https://raw.githubusercontent.com/nickvg/coi-serviceworker/master/coi-serviceworker.min.js
           sed -i 's|<head>|<head><script src="coi-serviceworker.min.js"></script>|' index.html
 
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@releases/v4
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
           folder: build/web
