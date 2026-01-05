@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - develop
   workflow_dispatch:
 
 permissions:
@@ -40,13 +41,12 @@ jobs:
           cd godot_version
           godot --headless --export-release "Web" build/web/index.html
 
-      - name: Add COOP/COEP headers
+      - name: Add coi-serviceworker for SharedArrayBuffer
         run: |
-          cat > godot_version/build/web/_headers << 'EOF'
-          /*
-            Cross-Origin-Opener-Policy: same-origin
-            Cross-Origin-Embedder-Policy: require-corp
-          EOF
+          cd godot_version/build/web
+          curl -O https://raw.githubusercontent.com/nickvg/coi-serviceworker/refs/heads/master/coi-serviceworker.min.js
+          # Inject the service worker script into index.html
+          sed -i 's|<head>|<head><script src="coi-serviceworker.min.js"></script>|' index.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
