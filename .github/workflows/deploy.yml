@@ -30,10 +30,15 @@ jobs:
       - name: Create build directory
         run: mkdir -p godot_version/build/web
 
+      - name: Import project
+        run: |
+          cd godot_version
+          /usr/local/bin/godot --headless --import
+
       - name: Build Web export
         run: |
           cd godot_version
-          /usr/local/bin/godot --headless --verbose --export-release "Web" build/web/index.html
+          /usr/local/bin/godot --headless --export-release "Web" build/web/index.html
 
       - name: Add coi-serviceworker for SharedArrayBuffer
         run: |
