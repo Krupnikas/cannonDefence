@@ -8,20 +8,17 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
 env:
   GODOT_VERSION: 4.2.2
+  PROJECT_PATH: godot_version
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: barichello/godot-ci:4.2.2
     steps:
@@ -30,50 +27,26 @@ jobs:
         with:
           lfs: true
 
-      - name: Setup export templates
+      - name: Setup
         run: |
-          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
-          cp -r /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/ 2>/dev/null || true
-          ls -la ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/ || echo "No templates found"
+          mkdir -v -p ~/.local/share/godot/export_templates/
+          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
-      - name: Create build directory
-        run: mkdir -p godot_version/build/web
-
-      - name: Build Web export
+      - name: Web Build
         run: |
-          cd godot_version
-          godot --headless --export-release "Web" build/web/index.html 2>&1 || {
-            echo "=== Export failed, debugging ==="
-            echo "Templates location:"
-            find /root -name "*.wasm" 2>/dev/null | head -5 || true
-            find ~/.local -name "*.wasm" 2>/dev/null | head -5 || true
-            echo "Retrying with verbose:"
-            godot --headless --verbose --export-release "Web" build/web/index.html
-          }
-
-      - name: Verify export
-        run: |
-          ls -la godot_version/build/web/ || true
-          test -f godot_version/build/web/index.html
+          mkdir -v -p build/web
+          EXPORT_DIR="$(readlink -f build)"
+          cd $PROJECT_PATH
+          godot --headless --verbose --export-release "Web" "$EXPORT_DIR/web/index.html"
 
       - name: Add coi-serviceworker for SharedArrayBuffer
         run: |
-          cd godot_version/build/web
-          curl -fsSL -O https://raw.githubusercontent.com/nickvg/coi-serviceworker/master/coi-serviceworker.min.js
+          cd build/web
+          curl -fsSL -O https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
           sed -i 's|<head>|<head><script src="coi-serviceworker.min.js"></script>|' index.html
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: godot_version/build/web
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: JamesIves/github-pages-deploy-action@releases/v4
+        with:
+          branch: gh-pages
+          folder: build/web
