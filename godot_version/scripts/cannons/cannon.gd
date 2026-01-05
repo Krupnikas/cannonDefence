@@ -151,6 +151,14 @@ func take_damage(amount: float) -> void:
 	if is_destroyed:
 		return
 
+	# Feature flag: cannon HP disabled
+	if not Settings.ENABLE_CANNON_HP:
+		return
+
+	# Debug: invincible cannons
+	if Settings.DEBUG_INVINCIBLE_CANNONS:
+		return
+
 	hp -= amount
 	queue_redraw()
 

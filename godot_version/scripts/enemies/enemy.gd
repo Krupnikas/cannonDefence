@@ -114,6 +114,11 @@ func _calculate_path() -> void:
 		path.clear()
 		return
 
+	# Feature flag check - if pathfinding disabled, just go straight
+	if not Settings.ENABLE_PATHFINDING:
+		path.clear()
+		return
+
 	var start_grid := Pathfinding.world_to_grid(global_position)
 	path = Pathfinding.find_path(start_grid, -1)
 	current_waypoint_index = 0
@@ -138,6 +143,10 @@ func _process(delta: float) -> void:
 
 
 func _update_cannon_attack(delta: float) -> void:
+	# Feature flag check
+	if not Settings.ENABLE_ENEMY_ATTACKS:
+		return
+
 	attack_cooldown = max(0.0, attack_cooldown - delta)
 
 	# Find nearest cannon to attack

@@ -422,6 +422,10 @@ func add_money(amount: int) -> void:
 
 
 func spend_money(amount: int) -> bool:
+	# Debug: infinite money
+	if Settings.DEBUG_INFINITE_MONEY:
+		return true
+
 	if money >= amount:
 		money -= amount
 		emit_signal("money_changed", money)

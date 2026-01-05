@@ -27,8 +27,11 @@ func _setup_cannon_buttons() -> void:
 	for child in cannon_buttons.get_children():
 		child.queue_free()
 
-	# 8 cannon types
+	# All cannon types (dynamically sized)
 	for i in range(GameData.CannonType.size()):
+		# Skip miner if feature is disabled
+		if i == GameData.CannonType.MINER and not Settings.ENABLE_MINER_CANNON:
+			continue
 		var button := Button.new()
 		var stats: Dictionary = GameData.CANNON_STATS[i]
 		var is_unlocked := GameData.is_cannon_unlocked(i)
