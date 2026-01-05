@@ -107,7 +107,7 @@ func _spawn_enemies(delta: float) -> void:
 func _spawn_enemy() -> void:
 	var enemy := enemy_scene.instantiate()
 	var enemy_type: int = _get_enemy_type_for_wave()
-	enemy.init(enemy_type, bullet_layer)
+	enemy.init(enemy_type, bullet_layer, self)
 
 	var spawn_y := randf_range(60, GameData.VIEWPORT_HEIGHT - 60)
 	enemy.position = Vector2(GameData.VIEWPORT_WIDTH + 50, spawn_y)
@@ -214,6 +214,7 @@ func _place_cannon(grid_pos: Vector2i) -> void:
 	grid[grid_pos.x][grid_pos.y] = cannon
 
 	cannon.tree_exited.connect(_on_cannon_removed.bind(grid_pos))
+	cannon.destroyed.connect(_on_cannon_destroyed.bind(cannon, grid_pos))
 
 
 func _sell_cannon(cannon: Node2D, grid_pos: Vector2i) -> void:
@@ -227,6 +228,11 @@ func _sell_cannon(cannon: Node2D, grid_pos: Vector2i) -> void:
 
 func _on_cannon_removed(grid_pos: Vector2i) -> void:
 	grid[grid_pos.x][grid_pos.y] = null
+
+
+func _on_cannon_destroyed(cannon: Node2D, grid_pos: Vector2i) -> void:
+	grid[grid_pos.x][grid_pos.y] = null
+	cannons.erase(cannon)
 
 
 func _on_game_over() -> void:
@@ -260,3 +266,25 @@ func get_closest_enemy(from_pos: Vector2, attack_range: float) -> Node2D:
 				closest_dist = dist
 
 	return closest
+
+
+func get_cannons_in_range(from_pos: Vector2, attack_range: float) -> Array:
+	var result: Array = []
+	var closest_dist: float = attack_range + 1.0
+	var closest_cannon: Node2D = null
+
+	for cannon in cannons:
+		if is_instance_valid(cannon) and not cannon.is_destroyed:
+			var dist := from_pos.distance_to(cannon.position)
+			if dist <= attack_range:
+				result.append(cannon)
+				if dist < closest_dist:
+					closest_dist = dist
+					closest_cannon = cannon
+
+	# Sort by distance (closest first)
+	if result.size() > 1 and closest_cannon:
+		result.erase(closest_cannon)
+		result.insert(0, closest_cannon)
+
+	return result

@@ -33,6 +33,13 @@ var freeze_slow: float = 0.5
 var freeze_timer: float = 0.0
 const FREEZE_DURATION: float = 2.0
 
+# Cannon attacking
+var attack_range: float = 80.0  # Range to attack cannons
+var attack_cooldown: float = 0.0
+var attack_rate: float = 1.0  # Attacks per second
+var current_cannon_target: Node2D = null
+var game_ref: Node2D = null
+
 # Signals
 signal died
 signal reached_end
@@ -41,9 +48,10 @@ signal reached_end
 var bullet_layer: Node2D = null
 
 
-func init(type: int, bullets_parent: Node2D) -> void:
+func init(type: int, bullets_parent: Node2D, game: Node2D = null) -> void:
 	enemy_type = type
 	bullet_layer = bullets_parent
+	game_ref = game
 
 	var stats: Dictionary = GameData.ENEMY_STATS[enemy_type]
 	max_hp = stats.hp * GameData.get_enemy_hp_multiplier()
@@ -56,6 +64,21 @@ func init(type: int, bullets_parent: Node2D) -> void:
 	effect_immune = stats.effect_immune
 	special = stats.special
 	is_flying = (special == "flying")
+
+	# Vary attack range and rate by enemy type
+	match enemy_type:
+		GameData.EnemyType.TANK:
+			attack_range = 100.0
+			attack_rate = 0.5  # Slower but harder hits
+		GameData.EnemyType.FAST:
+			attack_range = 60.0
+			attack_rate = 2.0  # Quick attacks
+		GameData.EnemyType.FLYING:
+			attack_range = 70.0
+			attack_rate = 0.8
+		_:
+			attack_range = 80.0
+			attack_rate = 1.0
 
 	# Adjust visual size based on type
 	match enemy_type:
@@ -80,9 +103,53 @@ func _process(delta: float) -> void:
 		return
 
 	_update_status_effects(delta)
+	_update_cannon_attack(delta)
 	_move(delta)
 	_check_reached_end()
 	queue_redraw()
+
+
+func _update_cannon_attack(delta: float) -> void:
+	attack_cooldown = max(0.0, attack_cooldown - delta)
+
+	# Find nearest cannon to attack
+	_find_cannon_target()
+
+	if current_cannon_target and attack_cooldown <= 0.0:
+		_attack_cannon()
+		attack_cooldown = 1.0 / attack_rate
+
+
+func _find_cannon_target() -> void:
+	current_cannon_target = null
+
+	if game_ref == null:
+		# Try to get game reference from parent
+		var parent := get_parent()
+		if parent:
+			game_ref = parent.get_parent() as Node2D
+
+	if game_ref == null or not game_ref.has_method("get_cannons_in_range"):
+		return
+
+	var cannons: Array = game_ref.get_cannons_in_range(global_position, attack_range)
+	if cannons.size() > 0:
+		# Prioritize miners (they're valuable targets)
+		for cannon in cannons:
+			if is_instance_valid(cannon) and cannon.is_miner:
+				current_cannon_target = cannon
+				return
+		# Otherwise attack closest cannon
+		current_cannon_target = cannons[0]
+
+
+func _attack_cannon() -> void:
+	if not is_instance_valid(current_cannon_target):
+		return
+
+	if current_cannon_target.has_method("take_damage"):
+		current_cannon_target.take_damage(enemy_damage)
+		_spawn_attack_effect()
 
 
 func _update_status_effects(delta: float) -> void:
@@ -155,6 +222,24 @@ func take_damage(amount: float, effect_type: String = "none", apply_effect: bool
 
 	if hp <= 0:
 		_die(true)
+
+
+func _spawn_attack_effect() -> void:
+	if not is_instance_valid(current_cannon_target):
+		return
+
+	# Draw a quick attack line
+	var attack_line := Line2D.new()
+	attack_line.points = [global_position, current_cannon_target.global_position]
+	attack_line.width = 3.0
+	attack_line.default_color = enemy_color
+	attack_line.z_index = 10
+	get_parent().add_child(attack_line)
+
+	# Fade out quickly
+	var tween := attack_line.create_tween()
+	tween.tween_property(attack_line, "modulate:a", 0.0, 0.15)
+	tween.tween_callback(attack_line.queue_free)
 
 
 func _spawn_status_text(text: String) -> void:

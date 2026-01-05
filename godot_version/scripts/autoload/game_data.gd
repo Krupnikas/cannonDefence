@@ -23,7 +23,8 @@ enum CannonType {
 	ICE,         # Slows enemies
 	ACID,        # Armor piercing, splash
 	LASER,       # Instant hit, piercing
-	TESLA        # Chain lightning
+	TESLA,       # Chain lightning
+	MINER        # Generates coins, no attack
 }
 
 # Enemy Types
@@ -60,7 +61,8 @@ const CANNON_STATS: Dictionary = {
 		"bullet_type": BulletType.SHOT,
 		"color": Color(0.5, 0.5, 0.55),
 		"unlock_level": 1,
-		"special": "none"
+		"special": "none",
+		"hp": 100.0
 	},
 	CannonType.SNIPER: {
 		"name": "Sniper",
@@ -72,7 +74,8 @@ const CANNON_STATS: Dictionary = {
 		"bullet_type": BulletType.SNIPER_SHOT,
 		"color": Color(0.2, 0.3, 0.2),
 		"unlock_level": 2,
-		"special": "critical"  # 25% chance for 2x damage
+		"special": "critical",  # 25% chance for 2x damage
+		"hp": 80.0  # Fragile
 	},
 	CannonType.RAPID: {
 		"name": "Rapid",
@@ -84,7 +87,8 @@ const CANNON_STATS: Dictionary = {
 		"bullet_type": BulletType.RAPID_SHOT,
 		"color": Color(0.6, 0.6, 0.3),
 		"unlock_level": 3,
-		"special": "none"
+		"special": "none",
+		"hp": 90.0
 	},
 	CannonType.FIRE: {
 		"name": "Fire",
@@ -96,7 +100,8 @@ const CANNON_STATS: Dictionary = {
 		"bullet_type": BulletType.FIRE_SHOT,
 		"color": Color(1.0, 0.4, 0.1),
 		"unlock_level": 4,
-		"special": "burn"  # 5 damage/sec for 3 sec
+		"special": "burn",  # 5 damage/sec for 3 sec
+		"hp": 100.0
 	},
 	CannonType.ICE: {
 		"name": "Ice",
@@ -108,7 +113,8 @@ const CANNON_STATS: Dictionary = {
 		"bullet_type": BulletType.ICE_SHOT,
 		"color": Color(0.4, 0.8, 1.0),
 		"unlock_level": 6,
-		"special": "slow"  # 50% slow for 2 sec
+		"special": "slow",  # 50% slow for 2 sec
+		"hp": 100.0
 	},
 	CannonType.ACID: {
 		"name": "Acid",
@@ -120,7 +126,8 @@ const CANNON_STATS: Dictionary = {
 		"bullet_type": BulletType.ACID_SHOT,
 		"color": Color(0.2, 0.9, 0.2),
 		"unlock_level": 8,
-		"special": "splash"  # Damages nearby enemies
+		"special": "splash",  # Damages nearby enemies
+		"hp": 120.0  # Sturdy
 	},
 	CannonType.LASER: {
 		"name": "Laser",
@@ -132,7 +139,8 @@ const CANNON_STATS: Dictionary = {
 		"bullet_type": BulletType.LASER_BEAM,
 		"color": Color(1.0, 0.2, 0.3),
 		"unlock_level": 10,
-		"special": "pierce"  # Hits all enemies in line
+		"special": "pierce",  # Hits all enemies in line
+		"hp": 90.0
 	},
 	CannonType.TESLA: {
 		"name": "Tesla",
@@ -144,7 +152,22 @@ const CANNON_STATS: Dictionary = {
 		"bullet_type": BulletType.TESLA_ARC,
 		"color": Color(0.6, 0.4, 1.0),
 		"unlock_level": 12,
-		"special": "chain"  # Chains to 3 nearby enemies
+		"special": "chain",  # Chains to 3 nearby enemies
+		"hp": 100.0
+	},
+	CannonType.MINER: {
+		"name": "Miner",
+		"damage": 0.0,
+		"fire_rate": 0.0,
+		"range": 0.0,
+		"cost": 150,
+		"sell_value": 105,
+		"bullet_type": -1,  # No bullet
+		"color": Color(0.85, 0.7, 0.2),  # Gold color
+		"unlock_level": 5,
+		"special": "miner",
+		"coin_rate": 2.5,  # Coins per second (60s payback: 150/2.5=60)
+		"hp": 80.0  # Fragile - needs protection
 	}
 }
 
