@@ -55,8 +55,8 @@ The challenge comes from resource management, not reflexes.
 - [x] Physical resistance for some types
 - [x] Status effect immunity for Resistant type
 - [x] Enemies attack cannons when in range
-- [ ] Pathfinding around cannons
-- [ ] Cannot place cannon if it blocks all paths
+- [x] Pathfinding around cannons (A* algorithm)
+- [x] Cannot place cannon if it blocks all paths
 
 ## 5. ECONOMY & DIFFICULTY
 Core principle: **Barely possible to progress, but achievable with optimal strategy**
