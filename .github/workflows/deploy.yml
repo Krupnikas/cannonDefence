@@ -28,36 +28,37 @@ jobs:
           cd godot_version
           /usr/local/bin/godot --headless --export-release "Web" build/web/index.html
 
-      - name: Patch for SharedArrayBuffer compatibility
+      - name: Patch for Cross Origin Isolation
         run: |
           cd godot_version/build/web
-          # Download coi-serviceworker for browsers that support it
-          wget -q https://cdn.jsdelivr.net/npm/coi-serviceworker@0.1.7/coi-serviceworker.min.js -O coi-sw.js
 
-          # Create a compatibility script that:
-          # 1. Tries coi-serviceworker first (works on desktop browsers)
-          # 2. Provides SharedArrayBuffer stub for iOS Safari where service workers fail
-          cat > sab-compat.js << 'JSEOF'
+          # Download coi-serviceworker - handles COOP/COEP headers via service worker
+          wget -q https://cdn.jsdelivr.net/npm/coi-serviceworker@0.1.7/coi-serviceworker.min.js -O coi-serviceworker.js
+
+          # The coi-serviceworker needs to be loaded first and will auto-reload the page
+          # For iOS Safari where service workers may fail, we patch Godot's feature detection
+          cat > coi-patch.js << 'JSEOF'
+          // Patch for browsers that don't support Cross Origin Isolation
           (function() {
-            // Check if SharedArrayBuffer is already available
-            if (typeof SharedArrayBuffer !== 'undefined') return;
+            // If already cross-origin isolated, nothing to do
+            if (window.crossOriginIsolated) return;
 
-            // Try to register coi-serviceworker for cross-origin isolation
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.register('coi-sw.js').catch(function() {});
-            }
-
-            // For iOS Safari and other browsers where service workers fail,
-            // provide a minimal SharedArrayBuffer stub since threading is disabled
-            // This allows Godot to pass its startup check
+            // Provide SharedArrayBuffer stub for Godot's check
             if (typeof SharedArrayBuffer === 'undefined') {
               window.SharedArrayBuffer = ArrayBuffer;
             }
+
+            // Patch Godot's feature detection to skip COI check when threading is disabled
+            // This runs before Godot loads
+            Object.defineProperty(window, 'crossOriginIsolated', {
+              get: function() { return true; },
+              configurable: true
+            });
           })();
           JSEOF
 
-          # Add the compatibility script to the HTML
-          sed -i 's|<head>|<head><script src="sab-compat.js"></script>|' index.html
+          # Add both scripts - coi-serviceworker first, then our patch as fallback
+          sed -i 's|<head>|<head><script src="coi-serviceworker.js"></script><script src="coi-patch.js"></script>|' index.html
           touch .nojekyll
 
       - name: Deploy to gh-pages
