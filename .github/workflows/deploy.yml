@@ -33,15 +33,14 @@ jobs:
       - name: Add SharedArrayBuffer fix
         run: |
           cd build/web
+          # Disable Jekyll processing
+          touch .nojekyll
           # Download coi-serviceworker
           wget -q https://cdn.jsdelivr.net/npm/coi-serviceworker/coi-serviceworker.min.js -O coi-serviceworker.js
           # Insert at very start of head
           sed -i 's|<head>|<head>\n<script src="coi-serviceworker.js"></script>|g' index.html
-          # Debug
-          echo "=== Files ==="
+          # Verify
           ls -la
-          echo "=== Head tag ==="
-          head -20 index.html
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
