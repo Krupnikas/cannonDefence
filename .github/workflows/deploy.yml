@@ -35,10 +35,10 @@ jobs:
           cd build/web
           # Disable Jekyll processing
           touch .nojekyll
-          # Download coi-serviceworker
-          wget -q https://cdn.jsdelivr.net/npm/coi-serviceworker/coi-serviceworker.min.js -O coi-serviceworker.js
+          # Download coi-serviceworker with different name
+          wget -q https://cdn.jsdelivr.net/npm/coi-serviceworker/coi-serviceworker.min.js -O coi-sw.js
           # Insert at very start of head
-          sed -i 's|<head>|<head>\n<script src="coi-serviceworker.js"></script>|g' index.html
+          sed -i 's|<head>|<head>\n<script src="coi-sw.js"></script>|g' index.html
           # Verify
           ls -la
 
