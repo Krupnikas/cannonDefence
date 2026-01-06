@@ -36,7 +36,7 @@ const BURN_DURATION: float = 3.0
 var is_frozen: bool = false
 var freeze_slow: float = 0.5
 var freeze_timer: float = 0.0
-const FREEZE_DURATION: float = 2.0
+const FREEZE_DURATION: float = 3.0
 
 # Cannon attacking
 var attack_range: float = 80.0  # Range to attack cannons

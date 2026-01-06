@@ -251,23 +251,14 @@ func _handle_left_click(click_pos: Vector2) -> void:
 	if not GameData.is_valid_grid_pos(grid_pos):
 		return
 
-	if grid[grid_pos.x][grid_pos.y] != null:
-		return
+	var existing_cannon: Node2D = grid[grid_pos.x][grid_pos.y]
 
-	# Check cannon unlock
-	if not GameData.is_cannon_unlocked(GameData.selected_cannon_type):
-		return
-
-	# Check if placing would block all paths
-	if Pathfinding.would_block_all_paths(grid_pos):
-		_show_blocked_message()
-		return
-
-	var cannon_stats: Dictionary = GameData.CANNON_STATS[GameData.selected_cannon_type]
-	if not GameData.spend_money(cannon_stats.cost):
-		return
-
-	_place_cannon(grid_pos)
+	if existing_cannon != null:
+		# Show upgrade/sell popup for existing cannon
+		hud.show_upgrade_popup(click_pos, existing_cannon)
+	else:
+		# Show build popup for empty cell
+		hud.show_cannon_popup(click_pos, grid_pos)
 
 
 func _show_blocked_message() -> void:
@@ -296,7 +287,39 @@ func _handle_right_click(click_pos: Vector2) -> void:
 	if cannon == null:
 		return
 
-	# Sell cannon
+	# Sell cannon directly on right-click
+	_sell_cannon(cannon, grid_pos)
+
+
+# Called from HUD popup
+func place_cannon_at(grid_pos: Vector2i) -> void:
+	if not GameData.is_valid_grid_pos(grid_pos):
+		return
+
+	if grid[grid_pos.x][grid_pos.y] != null:
+		return
+
+	# Check if placing would block all paths
+	if Pathfinding.would_block_all_paths(grid_pos):
+		_show_blocked_message()
+		return
+
+	var cannon_stats: Dictionary = GameData.CANNON_STATS[GameData.selected_cannon_type]
+	if not GameData.spend_money(cannon_stats.cost):
+		return
+
+	_place_cannon(grid_pos)
+
+
+# Called from HUD popup
+func sell_cannon_at(grid_pos: Vector2i) -> void:
+	if not GameData.is_valid_grid_pos(grid_pos):
+		return
+
+	var cannon: Node2D = grid[grid_pos.x][grid_pos.y]
+	if cannon == null:
+		return
+
 	_sell_cannon(cannon, grid_pos)
 
 

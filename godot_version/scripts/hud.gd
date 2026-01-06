@@ -1,48 +1,61 @@
 extends Control
-## HUD Controller - Minimalist UI for tower defense
+## HUD Controller - Fieldrunners-style popup UI
 
 @onready var money_label: Label = $TopBar/MoneyLabel
 @onready var lives_label: Label = $TopBar/LivesLabel
 @onready var wave_label: Label = $TopBar/WaveLabel
 @onready var score_label: Label = $TopBar/ScoreLabel
-@onready var cannon_buttons: HBoxContainer = $BottomBar/CannonButtons
 @onready var game_over_panel: Panel = $GameOverPanel
-
-
 @onready var pause_panel: Panel = $PausePanel
+
+# Popup for cannon selection/upgrade
+var popup_panel: Panel = null
+var popup_grid_pos: Vector2i = Vector2i(-1, -1)
+var popup_cannon: Node2D = null
 
 var is_paused := false
 
 
 func _ready() -> void:
-	# Allow HUD to process when game is paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
-
 	_connect_signals()
-	_setup_cannon_buttons()
 	_update_all_labels()
 	game_over_panel.visible = false
+	pause_panel.visible = false
 	_setup_pause_panel()
 
 
 func _input(event: InputEvent) -> void:
-	# Cannon selection with number keys (1-9)
 	if event is InputEventKey and event.pressed and not event.echo:
 		var key := event.keycode
-		if key >= KEY_1 and key <= KEY_9:
-			var cannon_index := key - KEY_1  # 0-8
-			if cannon_index < GameData.CannonType.size():
-				# Skip MINER if disabled
-				if cannon_index == GameData.CannonType.MINER and not Settings.ENABLE_MINER_CANNON:
-					return
-				if GameData.is_cannon_unlocked(cannon_index):
-					GameData.selected_cannon_type = cannon_index
-					_update_button_selection()
+
+		# Fast forward with Space
+		if key == KEY_SPACE and not GameData.is_game_over and not GameData.is_victory:
+			Engine.time_scale = 2.0 if Engine.time_scale == 1.0 else 1.0
 
 		# Pause with P or Escape
 		if key == KEY_P or key == KEY_ESCAPE:
-			if not game_over_panel.visible:
+			if popup_panel and popup_panel.visible:
+				_close_popup()
+			elif not game_over_panel.visible:
 				_toggle_pause()
+
+		# Debug shortcuts
+		if key == KEY_F1:
+			Settings.DEBUG_SHOW_PATHS = not Settings.DEBUG_SHOW_PATHS
+		elif key == KEY_F2:
+			Settings.DEBUG_SHOW_RANGES = not Settings.DEBUG_SHOW_RANGES
+		elif key == KEY_F3:
+			Settings.DEBUG_INFINITE_MONEY = not Settings.DEBUG_INFINITE_MONEY
+		elif key == KEY_F4:
+			Settings.DEBUG_INVINCIBLE_CANNONS = not Settings.DEBUG_INVINCIBLE_CANNONS
+
+	# Close popup on click outside
+	if event is InputEventMouseButton and event.pressed:
+		if popup_panel and popup_panel.visible:
+			var popup_rect := Rect2(popup_panel.global_position, popup_panel.size)
+			if not popup_rect.has_point(event.position):
+				_close_popup()
 
 
 func _connect_signals() -> void:
@@ -52,68 +65,148 @@ func _connect_signals() -> void:
 	GameData.score_changed.connect(_on_score_changed)
 
 
-func _setup_cannon_buttons() -> void:
-	for child in cannon_buttons.get_children():
-		child.queue_free()
+# Fieldrunners-style popup for empty cell
+func show_cannon_popup(screen_pos: Vector2, grid_pos: Vector2i) -> void:
+	_close_popup()
+	popup_grid_pos = grid_pos
+	popup_cannon = null
 
-	# All cannon types (dynamically sized)
+	popup_panel = Panel.new()
+	popup_panel.size = Vector2(280, 200)
+
+	# Position popup near click, but keep on screen
+	var pos := screen_pos - Vector2(140, 100)
+	pos.x = clampf(pos.x, 10, GameData.VIEWPORT_WIDTH - 290)
+	pos.y = clampf(pos.y, 10, GameData.VIEWPORT_HEIGHT - 210)
+	popup_panel.position = pos
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.12, 0.15, 0.95)
+	style.border_color = Color(0.3, 0.4, 0.3)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	popup_panel.add_theme_stylebox_override("panel", style)
+
+	var vbox := VBoxContainer.new()
+	vbox.anchors_preset = Control.PRESET_FULL_RECT
+	vbox.add_theme_constant_override("separation", 4)
+	popup_panel.add_child(vbox)
+
+	var title := Label.new()
+	title.text = "BUILD"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
+	vbox.add_child(title)
+
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 4)
+	grid.add_theme_constant_override("v_separation", 4)
+	vbox.add_child(grid)
+
 	for i in range(GameData.CannonType.size()):
-		# Skip miner if feature is disabled
 		if i == GameData.CannonType.MINER and not Settings.ENABLE_MINER_CANNON:
 			continue
-		var button := Button.new()
+
 		var stats: Dictionary = GameData.CANNON_STATS[i]
 		var is_unlocked := GameData.is_cannon_unlocked(i)
+		var can_afford := GameData.money >= stats.cost or Settings.DEBUG_INFINITE_MONEY
 
-		# Store cannon type as metadata for proper tracking
-		button.set_meta("cannon_type", i)
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(85, 50)
+		btn.add_theme_font_size_override("font_size", 11)
 
 		if is_unlocked:
-			button.text = "%s\n$%d" % [stats.name, stats.cost]
+			btn.text = "%s\n$%d" % [stats.name, stats.cost]
+			btn.disabled = not can_afford
+			if can_afford:
+				btn.add_theme_color_override("font_color", stats.color.lightened(0.3))
+				btn.pressed.connect(_on_popup_cannon_selected.bind(i))
+			else:
+				btn.modulate = Color(0.5, 0.5, 0.5)
 		else:
-			button.text = "%s\nLv.%d" % [stats.name, stats.unlock_level]
+			btn.text = "%s\nLv.%d" % [stats.name, stats.unlock_level]
+			btn.disabled = true
+			btn.modulate = Color(0.4, 0.4, 0.4)
 
-		button.custom_minimum_size = Vector2(90, 55)
-		button.pressed.connect(_on_cannon_button_pressed.bind(i))
-		button.add_theme_font_size_override("font_size", 12)
+		grid.add_child(btn)
 
-		# Color based on cannon type
-		if is_unlocked:
-			button.add_theme_color_override("font_color", stats.color.lightened(0.3))
-		else:
-			button.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
-			button.disabled = true
-
-		cannon_buttons.add_child(button)
-
-	_update_button_selection()
+	add_child(popup_panel)
 
 
-func _update_button_selection() -> void:
-	for i in range(cannon_buttons.get_child_count()):
-		var button: Button = cannon_buttons.get_child(i)
-		var cannon_type: int = button.get_meta("cannon_type")
-		if cannon_type == GameData.selected_cannon_type:
-			button.add_theme_stylebox_override("normal", _create_selected_style())
-			button.add_theme_stylebox_override("hover", _create_selected_style())
-		else:
-			button.remove_theme_stylebox_override("normal")
-			button.remove_theme_stylebox_override("hover")
+# Popup for existing cannon (upgrade/sell)
+func show_upgrade_popup(screen_pos: Vector2, cannon: Node2D) -> void:
+	_close_popup()
+	popup_cannon = cannon
+	popup_grid_pos = cannon.grid_position
 
+	popup_panel = Panel.new()
+	popup_panel.size = Vector2(180, 120)
 
-func _create_selected_style() -> StyleBoxFlat:
+	var pos := screen_pos - Vector2(90, 60)
+	pos.x = clampf(pos.x, 10, GameData.VIEWPORT_WIDTH - 190)
+	pos.y = clampf(pos.y, 10, GameData.VIEWPORT_HEIGHT - 130)
+	popup_panel.position = pos
+
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.15, 0.2, 0.15, 1.0)
-	style.border_color = Color(0.5, 0.7, 0.5)
+	style.bg_color = Color(0.1, 0.12, 0.15, 0.95)
+	style.border_color = Color(0.4, 0.35, 0.3)
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(4)
-	return style
+	style.set_corner_radius_all(8)
+	popup_panel.add_theme_stylebox_override("panel", style)
+
+	var vbox := VBoxContainer.new()
+	vbox.anchors_preset = Control.PRESET_FULL_RECT
+	vbox.add_theme_constant_override("separation", 6)
+	popup_panel.add_child(vbox)
+
+	var stats: Dictionary = GameData.CANNON_STATS[cannon.cannon_type]
+	var title := Label.new()
+	title.text = stats.name.to_upper()
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", stats.color.lightened(0.3))
+	vbox.add_child(title)
+
+	# Sell button
+	var sell_btn := Button.new()
+	sell_btn.text = "SELL ($%d)" % cannon.get_sell_value()
+	sell_btn.custom_minimum_size = Vector2(160, 35)
+	sell_btn.add_theme_font_size_override("font_size", 14)
+	sell_btn.add_theme_color_override("font_color", Color(0.9, 0.6, 0.3))
+	sell_btn.pressed.connect(_on_popup_sell)
+	vbox.add_child(sell_btn)
+
+	# Close button
+	var close_btn := Button.new()
+	close_btn.text = "CLOSE"
+	close_btn.custom_minimum_size = Vector2(160, 30)
+	close_btn.add_theme_font_size_override("font_size", 12)
+	close_btn.pressed.connect(_close_popup)
+	vbox.add_child(close_btn)
+
+	add_child(popup_panel)
 
 
-func _on_cannon_button_pressed(cannon_type: int) -> void:
-	if GameData.is_cannon_unlocked(cannon_type):
-		GameData.selected_cannon_type = cannon_type
-		_update_button_selection()
+func _on_popup_cannon_selected(cannon_type: int) -> void:
+	GameData.selected_cannon_type = cannon_type
+	get_parent().get_parent().call("place_cannon_at", popup_grid_pos)
+	_close_popup()
+
+
+func _on_popup_sell() -> void:
+	if popup_cannon and is_instance_valid(popup_cannon):
+		get_parent().get_parent().call("sell_cannon_at", popup_grid_pos)
+	_close_popup()
+
+
+func _close_popup() -> void:
+	if popup_panel:
+		popup_panel.queue_free()
+		popup_panel = null
+	popup_grid_pos = Vector2i(-1, -1)
+	popup_cannon = null
 
 
 func _update_all_labels() -> void:
@@ -125,7 +218,6 @@ func _update_all_labels() -> void:
 
 func _on_money_changed(new_amount: int) -> void:
 	money_label.text = "$%d" % new_amount
-	_update_button_affordability()
 
 
 func _on_lives_changed(new_lives: int) -> void:
@@ -142,26 +234,6 @@ func _on_wave_changed(new_wave: int) -> void:
 
 func _on_score_changed(new_score: int) -> void:
 	score_label.text = "%d" % new_score
-
-
-func _update_button_affordability() -> void:
-	for i in range(cannon_buttons.get_child_count()):
-		var button: Button = cannon_buttons.get_child(i)
-		var cannon_type: int = button.get_meta("cannon_type")
-		var is_unlocked := GameData.is_cannon_unlocked(cannon_type)
-
-		if not is_unlocked:
-			button.disabled = true
-			button.modulate = Color(0.4, 0.4, 0.4, 1.0)
-			continue
-
-		var stats: Dictionary = GameData.CANNON_STATS[cannon_type]
-		if GameData.money < stats.cost:
-			button.disabled = true
-			button.modulate = Color(0.6, 0.6, 0.6, 1.0)
-		else:
-			button.disabled = false
-			button.modulate = Color.WHITE
 
 
 func show_game_over() -> void:
@@ -306,58 +378,51 @@ func _go_to_menu() -> void:
 
 
 func _setup_pause_panel() -> void:
-	if not has_node("PausePanel"):
-		# Create pause panel dynamically
-		var panel := Panel.new()
-		panel.name = "PausePanel"
-		panel.visible = false
-		panel.anchors_preset = Control.PRESET_CENTER
-		panel.size = Vector2(300, 200)
-		panel.position = Vector2(-150, -100)
-		add_child(panel)
-		pause_panel = panel
+	# Clear existing children
+	for child in pause_panel.get_children():
+		child.queue_free()
 
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
-		style.border_color = Color(0.4, 0.4, 0.5)
-		style.set_border_width_all(3)
-		style.set_corner_radius_all(10)
-		panel.add_theme_stylebox_override("panel", style)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
+	style.border_color = Color(0.4, 0.4, 0.5)
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(10)
+	pause_panel.add_theme_stylebox_override("panel", style)
 
-		var vbox := VBoxContainer.new()
-		vbox.anchors_preset = Control.PRESET_FULL_RECT
-		vbox.add_theme_constant_override("separation", 15)
-		panel.add_child(vbox)
+	var vbox := VBoxContainer.new()
+	vbox.anchors_preset = Control.PRESET_FULL_RECT
+	vbox.add_theme_constant_override("separation", 15)
+	pause_panel.add_child(vbox)
 
-		var spacer := Control.new()
-		spacer.custom_minimum_size = Vector2(0, 20)
-		vbox.add_child(spacer)
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(0, 20)
+	vbox.add_child(spacer)
 
-		var title := Label.new()
-		title.text = "PAUSED"
-		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		title.add_theme_font_size_override("font_size", 36)
-		title.add_theme_color_override("font_color", Color.WHITE)
-		vbox.add_child(title)
+	var title := Label.new()
+	title.text = "PAUSED"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 36)
+	title.add_theme_color_override("font_color", Color.WHITE)
+	vbox.add_child(title)
 
-		var resume_btn := Button.new()
-		resume_btn.text = "Resume (P)"
-		resume_btn.custom_minimum_size = Vector2(200, 40)
-		resume_btn.pressed.connect(_toggle_pause)
-		vbox.add_child(resume_btn)
+	var resume_btn := Button.new()
+	resume_btn.text = "Resume"
+	resume_btn.custom_minimum_size = Vector2(200, 50)
+	resume_btn.add_theme_font_size_override("font_size", 18)
+	resume_btn.pressed.connect(_toggle_pause)
+	vbox.add_child(resume_btn)
 
-		var menu_btn := Button.new()
-		menu_btn.text = "Main Menu"
-		menu_btn.custom_minimum_size = Vector2(200, 40)
-		menu_btn.pressed.connect(_go_to_menu)
-		vbox.add_child(menu_btn)
+	var menu_btn := Button.new()
+	menu_btn.text = "Main Menu"
+	menu_btn.custom_minimum_size = Vector2(200, 50)
+	menu_btn.add_theme_font_size_override("font_size", 18)
+	menu_btn.pressed.connect(_go_to_menu)
+	vbox.add_child(menu_btn)
 
-		# Center the vbox content
-		for child in vbox.get_children():
-			if child is Control:
-				child.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	else:
-		pause_panel.visible = false
+	# Center the vbox content
+	for child in vbox.get_children():
+		if child is Control:
+			child.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 
 func _toggle_pause() -> void:
