@@ -8,39 +8,31 @@ on:
 permissions:
   contents: write
 
-env:
-  GODOT_VERSION: 4.2.2
-
 jobs:
   build:
-    runs-on: ubuntu-24.04
-    container:
-      image: barichello/godot-ci:4.2.2
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup templates
-        run: |
-          mkdir -p ~/.local/share/godot/export_templates/
-          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
-
-      - name: Export Web
+      - name: Create simple HTML
         run: |
           mkdir -p build/web
-          cd godot_version
-          /usr/local/bin/godot --headless --verbose --export-release "Web" ../build/web/index.html
-
-      - name: Add SharedArrayBuffer fix
-        run: |
-          cd build/web
-          # Disable Jekyll processing
-          touch .nojekyll
-          # Download coi-serviceworker with different name
-          wget -q https://cdn.jsdelivr.net/npm/coi-serviceworker/coi-serviceworker.min.js -O coi-sw.js
-          # Insert at very start of head
-          sed -i 's|<head>|<head>\n<script src="coi-sw.js"></script>|g' index.html
-          # Verify
-          ls -la
+          cat > build/web/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Hello World</title>
+            <style>
+              body { background: #000; color: #0f0; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+              h1 { font-size: 48px; }
+            </style>
+          </head>
+          <body>
+            <h1>Hello World from GitHub Pages!</h1>
+          </body>
+          </html>
+          EOF
+          touch build/web/.nojekyll
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
