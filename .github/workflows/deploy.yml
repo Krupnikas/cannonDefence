@@ -17,18 +17,24 @@ jobs:
       - name: Create simple HTML
         run: |
           mkdir -p build/web
-          cat > build/web/index.html << 'EOF'
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          cat > build/web/index.html << EOF
           <!DOCTYPE html>
           <html>
           <head>
             <title>Hello World</title>
+            <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+            <meta http-equiv="Pragma" content="no-cache">
+            <meta http-equiv="Expires" content="0">
             <style>
-              body { background: #000; color: #0f0; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+              body { background: #000; color: #0f0; font-family: monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; }
               h1 { font-size: 48px; }
+              p { font-size: 16px; color: #0a0; }
             </style>
           </head>
           <body>
-            <h1>Hello World v2!</h1>
+            <h1>Hello World v3!</h1>
+            <p>Deployed: ${TIMESTAMP}</p>
           </body>
           </html>
           EOF
@@ -39,3 +45,5 @@ jobs:
         with:
           branch: gh-pages
           folder: build/web
+          clean: true
+          single-commit: true
