@@ -197,12 +197,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event is InputEventMouseMotion and is_panning:
 			_handle_camera_pan_motion(event)
 
-	# Game input
+	# Game input - handle both mouse and touch
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			_handle_left_click(_get_world_mouse_pos(event.position))
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			_handle_right_click(_get_world_mouse_pos(event.position))
+
+	# Touch input for mobile
+	if event is InputEventScreenTouch and event.pressed:
+		_handle_left_click(_get_world_mouse_pos(event.position))
 
 
 func _get_world_mouse_pos(screen_pos: Vector2) -> Vector2:

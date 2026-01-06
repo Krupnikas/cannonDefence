@@ -53,6 +53,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="PausePanel" type="Panel" parent="."]
 visible = false
@@ -68,5 +69,6 @@ offset_right = 150.0
 offset_bottom = 100.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [connection signal="gui_input" from="GameOverPanel" to="." method="_on_game_over_panel_gui_input"]

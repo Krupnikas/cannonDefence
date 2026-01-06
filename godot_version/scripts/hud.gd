@@ -50,12 +50,21 @@ func _input(event: InputEvent) -> void:
 		elif key == KEY_F4:
 			Settings.DEBUG_INVINCIBLE_CANNONS = not Settings.DEBUG_INVINCIBLE_CANNONS
 
-	# Close popup on click outside
+	# Close popup on click/touch outside
+	var click_pos: Vector2 = Vector2.ZERO
+	var is_click := false
+
 	if event is InputEventMouseButton and event.pressed:
-		if popup_panel and popup_panel.visible:
-			var popup_rect := Rect2(popup_panel.global_position, popup_panel.size)
-			if not popup_rect.has_point(event.position):
-				_close_popup()
+		click_pos = event.position
+		is_click = true
+	elif event is InputEventScreenTouch and event.pressed:
+		click_pos = event.position
+		is_click = true
+
+	if is_click and popup_panel and popup_panel.visible:
+		var popup_rect := Rect2(popup_panel.global_position, popup_panel.size)
+		if not popup_rect.has_point(click_pos):
+			_close_popup()
 
 
 func _connect_signals() -> void:
