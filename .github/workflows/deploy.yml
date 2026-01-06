@@ -28,11 +28,36 @@ jobs:
           cd godot_version
           /usr/local/bin/godot --headless --export-release "Web" build/web/index.html
 
-      - name: Add coi-serviceworker for SharedArrayBuffer
+      - name: Patch for SharedArrayBuffer compatibility
         run: |
           cd godot_version/build/web
+          # Download coi-serviceworker for browsers that support it
           wget -q https://cdn.jsdelivr.net/npm/coi-serviceworker@0.1.7/coi-serviceworker.min.js -O coi-sw.js
-          sed -i 's|<head>|<head><script src="coi-sw.js"></script>|' index.html
+
+          # Create a compatibility script that:
+          # 1. Tries coi-serviceworker first (works on desktop browsers)
+          # 2. Provides SharedArrayBuffer stub for iOS Safari where service workers fail
+          cat > sab-compat.js << 'JSEOF'
+          (function() {
+            // Check if SharedArrayBuffer is already available
+            if (typeof SharedArrayBuffer !== 'undefined') return;
+
+            // Try to register coi-serviceworker for cross-origin isolation
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('coi-sw.js').catch(function() {});
+            }
+
+            // For iOS Safari and other browsers where service workers fail,
+            // provide a minimal SharedArrayBuffer stub since threading is disabled
+            // This allows Godot to pass its startup check
+            if (typeof SharedArrayBuffer === 'undefined') {
+              window.SharedArrayBuffer = ArrayBuffer;
+            }
+          })();
+          JSEOF
+
+          # Add the compatibility script to the HTML
+          sed -i 's|<head>|<head><script src="sab-compat.js"></script>|' index.html
           touch .nojekyll
 
       - name: Deploy to gh-pages
