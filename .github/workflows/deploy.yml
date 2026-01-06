@@ -34,7 +34,7 @@ jobs:
         run: |
           cd build/web
           # Download coi-serviceworker
-          wget -q https://raw.githubusercontent.com/nickvg/coi-serviceworker/master/coi-serviceworker.min.js -O coi-serviceworker.js
+          wget -q https://cdn.jsdelivr.net/npm/coi-serviceworker/coi-serviceworker.min.js -O coi-serviceworker.js
           # Insert at very start of head
           sed -i 's|<head>|<head>\n<script src="coi-serviceworker.js"></script>|g' index.html
           # Debug
