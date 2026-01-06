@@ -19,14 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Debug - Find Godot
-        run: |
-          echo "=== Checking Godot ==="
-          which godot || echo "godot not in PATH"
-          ls -la /usr/local/bin/godot* 2>/dev/null || echo "Not in /usr/local/bin"
-          ls -la /opt/godot* 2>/dev/null || echo "Not in /opt"
-          find / -name "godot*" -type f 2>/dev/null | head -5 || true
-
       - name: Setup templates
         run: |
           mkdir -p ~/.local/share/godot/export_templates/
@@ -41,7 +33,7 @@ jobs:
       - name: Add SharedArrayBuffer fix
         run: |
           cd build/web
-          curl -fsSL -O https://raw.githubusercontent.com/nickvg/coi-serviceworker/master/coi-serviceworker.min.js
+          wget -q https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
           sed -i 's|<head>|<head><script src="coi-serviceworker.min.js"></script>|' index.html
 
       - name: Deploy
