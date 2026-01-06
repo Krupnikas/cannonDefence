@@ -105,11 +105,11 @@ func _laser_collision(enemies: Array) -> void:
 			continue
 
 		# Check if enemy is along the laser line
-		var to_enemy := enemy.global_position - global_position
-		var proj := to_enemy.dot(direction)
+		var to_enemy: Vector2 = enemy.global_position - global_position
+		var proj: float = to_enemy.dot(direction)
 
 		if proj > 0 and proj < 500:  # Within range
-			var perp_dist := abs(to_enemy.cross(direction))
+			var perp_dist: float = abs(to_enemy.cross(direction))
 			if perp_dist < enemy.body_radius + bullet_size:
 				_hit_enemy(enemy, false)  # Don't destroy on hit
 				hit_any = true

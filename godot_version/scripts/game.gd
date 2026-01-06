@@ -319,7 +319,7 @@ func _place_cannon(grid_pos: Vector2i) -> void:
 
 
 func _sell_cannon(cannon: Node2D, grid_pos: Vector2i) -> void:
-	var sell_value := cannon.get_sell_value()
+	var sell_value: int = cannon.get_sell_value()
 	GameData.add_money(sell_value)
 
 	grid[grid_pos.x][grid_pos.y] = null
