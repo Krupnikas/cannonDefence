@@ -19,10 +19,10 @@ var target_x: float = -50.0
 var is_dead: bool = false
 var is_flying: bool = false
 
-# Pathfinding
+# Pathfinding - Fieldrunners-style grid movement
 var path: Array[Vector2i] = []
 var current_waypoint_index: int = 0
-var waypoint_threshold: float = 30.0  # Distance to consider waypoint reached
+var waypoint_threshold: float = 5.0  # Small threshold for precise cell-to-cell movement
 
 # Visual
 var body_radius: float = 25.0
@@ -221,12 +221,14 @@ func _move(delta: float) -> void:
 		position += direction * speed * delta
 		return
 
-	# Ground enemies use pathfinding
+	# Ground enemies use pathfinding - Fieldrunners-style cell-to-cell movement
 	if path.size() > 0 and current_waypoint_index < path.size():
 		var target_pos := Pathfinding.grid_to_world(path[current_waypoint_index])
 		var dist_to_waypoint := position.distance_to(target_pos)
 
 		if dist_to_waypoint < waypoint_threshold:
+			# Snap to cell center for precision
+			position = target_pos
 			# Move to next waypoint
 			current_waypoint_index += 1
 			if current_waypoint_index >= path.size():
@@ -237,11 +239,17 @@ func _move(delta: float) -> void:
 				direction = position.direction_to(target_pos)
 		else:
 			direction = position.direction_to(target_pos)
+
+		# Move towards target
+		var move_dist := speed * delta
+		if move_dist >= dist_to_waypoint:
+			# Would overshoot - snap to target and continue
+			position = target_pos
+		else:
+			position += direction * move_dist
 	else:
 		# No path or completed path - just go left
-		direction = Vector2(-1, 0)
-
-	position += direction * speed * delta
+		position += direction * speed * delta
 
 
 func _check_reached_end() -> void:

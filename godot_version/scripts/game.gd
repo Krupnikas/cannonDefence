@@ -138,9 +138,13 @@ func _spawn_enemy() -> void:
 	var enemy_type: int = _get_enemy_type_for_wave()
 	enemy.init(enemy_type, bullet_layer, self)
 
-	var spawn_y := randf_range(60, GameData.VIEWPORT_HEIGHT - 60)
-	enemy.position = Vector2(GameData.VIEWPORT_WIDTH + 50, spawn_y)
-	enemy.target_x = -50.0
+	# Spawn at cell center on right edge (Fieldrunners-style)
+	var spawn_row := randi_range(0, GameData.GRID_ROWS - 1)
+	var spawn_grid := Vector2i(GameData.GRID_COLS - 1, spawn_row)
+	var spawn_world := GameData.grid_to_world(spawn_grid)
+	# Start slightly off-screen to the right
+	enemy.position = Vector2(spawn_world.x + GameData.CELL_WIDTH, spawn_world.y)
+	enemy.target_x = -GameData.CELL_WIDTH / 2.0
 
 	enemy_layer.add_child(enemy)
 	enemies.append(enemy)
