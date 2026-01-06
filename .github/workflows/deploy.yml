@@ -33,8 +33,15 @@ jobs:
       - name: Add SharedArrayBuffer fix
         run: |
           cd build/web
-          wget -q https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
-          sed -i 's|<head>|<head><script src="coi-serviceworker.min.js"></script>|' index.html
+          # Download coi-serviceworker
+          wget -q https://raw.githubusercontent.com/nickvg/coi-serviceworker/master/coi-serviceworker.min.js -O coi-serviceworker.js
+          # Insert at very start of head
+          sed -i 's|<head>|<head>\n<script src="coi-serviceworker.js"></script>|g' index.html
+          # Debug
+          echo "=== Files ==="
+          ls -la
+          echo "=== Head tag ==="
+          head -20 index.html
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
