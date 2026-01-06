@@ -19,8 +19,18 @@ jobs:
 
       - name: Setup export templates
         run: |
-          mkdir -p /root/.local/share/godot/export_templates/4.2.2.stable
-          mv /root/.local/share/godot/templates/4.2.2.stable/* /root/.local/share/godot/export_templates/4.2.2.stable/
+          mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
+          find /root -name "*.tpz" -o -name "web_*" 2>/dev/null || true
+          find /root -type d -name "templates" 2>/dev/null || true
+          ls -la /root/.local/share/godot/ || true
+          if [ -d "/root/.local/share/godot/templates/4.2.2.stable" ]; then
+            cp -r /root/.local/share/godot/templates/4.2.2.stable/* ~/.local/share/godot/export_templates/4.2.2.stable/
+          elif [ -d "/root/.local/share/godot/export_templates/4.2.2.stable" ]; then
+            echo "Templates already in place"
+          else
+            echo "Searching for templates..."
+            find /root -name "web_template*" 2>/dev/null
+          fi
 
       - name: Build Web Export
         run: |
