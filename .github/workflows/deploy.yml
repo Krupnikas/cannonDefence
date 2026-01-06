@@ -11,38 +11,36 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.2.2
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create simple HTML
+      - name: Setup export templates
         run: |
-          mkdir -p dist
-          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          cat > dist/index.html << EOF
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Hello World</title>
-            <style>
-              body { background: #000; color: #0f0; font-family: monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-              h1 { font-size: 48px; }
-              p { font-size: 16px; color: #0a0; }
-            </style>
-          </head>
-          <body>
-            <h1>Hello World v5!</h1>
-            <p>Deployed: ${TIMESTAMP}</p>
-          </body>
-          </html>
-          EOF
-          touch dist/.nojekyll
+          mkdir -p /root/.local/share/godot/export_templates/4.2.2.stable
+          mv /root/.local/share/godot/templates/4.2.2.stable/* /root/.local/share/godot/export_templates/4.2.2.stable/
 
-      - name: Force push to gh-pages
+      - name: Build Web Export
         run: |
-          cd dist
+          mkdir -p godot_version/build/web
+          cd godot_version
+          /usr/local/bin/godot --headless --export-release "Web" build/web/index.html
+
+      - name: Add coi-serviceworker for SharedArrayBuffer
+        run: |
+          cd godot_version/build/web
+          wget -q https://cdn.jsdelivr.net/npm/coi-serviceworker@0.1.7/coi-serviceworker.min.js -O coi-sw.js
+          sed -i 's|<head>|<head><script src="coi-sw.js"></script>|' index.html
+          touch .nojekyll
+
+      - name: Deploy to gh-pages
+        run: |
+          cd godot_version/build/web
           git init
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add .
-          git commit -m "Deploy v5"
+          git commit -m "Deploy Cannon Defence"
           git push --force https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:gh-pages
